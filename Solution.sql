@@ -121,3 +121,23 @@ join members on
 members.customer_id=s.customer_id
 where order_date between join_date and DATEADD(day,7,join_date)
 group by s.customer_id
+
+
+
+
+--Bonus Question
+
+with cte as (
+select sales.customer_id as customer_id,order_date,product_name,price,
+case when sales.customer_id in (select members.customer_id from members) 
+and order_date>=(select min(join_date) from members)
+then 'Y' else 'N' end member,
+ROW_NUMBER() over (partition by sales.customer_id order by order_date) rn
+from sales
+left join menu on sales.product_id=menu.product_id
+left join members on sales.customer_id=members.customer_id
+)
+select customer_id,order_date,product_name,price,member,
+case when member='Y' then rank() over (partition by customer_id,member order by order_date) else null end ranking
+from cte
+order by customer_id,order_date,product_name
